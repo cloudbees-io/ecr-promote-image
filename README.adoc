@@ -1,0 +1,68 @@
+= CloudBees action: Promote an image in Amazon ECR
+
+Use this action to promote an image in Amazon Elastic Container Registry (Amazon ECR).
+
+== Inputs
+
+[cols="2a,1a,3a,3a",options="header"]
+.Input details
+|===
+
+| Input name
+| Data type
+| Required?
+| Description
+
+| `registry-url`
+| String
+| Yes
+| The Amazon S3 bucket name.
+
+| `source-repository-name`
+| String
+| Yes
+| The Amazon ECR source repository name.
+
+| `target-repository-name`
+| String
+| Required only if `target-tag` is identical to `source-tag`.
+| The Amazon ECR target repository name.
+
+| `source-tag`
+| String
+| Yes
+| The Amazon ECR source image tag.
+
+| `target-tag`
+| String
+| Required only if the `target-repository-name` is identical to the `source-repository-name`.
+| The Amazon ECR target image tag.
+
+|===
+
+== Usage example
+
+In your YAML file, add:
+
+[source,yaml]
+----
+
+      - name: Promote an image in ECR
+        uses: cloudbees-io/ecr-promote-image@v1
+        with:
+           registry-url: ${{ vars.REGISTRY_URL }}
+           source-repository-name: my-ecr-repo-name
+           target-repository-name: my-ecr-repo-name
+           source-tag: '6'
+           target-tag: '7'
+----
+
+== License
+
+This code is made available under the 
+link:https://opensource.org/license/mit/[MIT license].
+
+== References
+
+* Learn more about link:https://docs.cloudbees.com/docs/cloudbees-saas-platform-actions/latest/[using actions in CloudBees workflows].
+* Learn about link:https://docs.cloudbees.com/docs/cloudbees-saas-platform/latest/[the CloudBees platform].

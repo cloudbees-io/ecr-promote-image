@@ -1,0 +1,58 @@
+apiVersion: automation.cloudbees.io/v1alpha1
+kind: action
+name: ecr-actions
+inputs:
+  registry-url:  # id of input
+    description: 'registry url'
+    required: true
+  source-repository-name:  # id of input
+    description: 'source repository name'
+    required: true
+  target-repository-name:  # id of input
+    description: 'target repository name. Note: if empty or same as source repository name,  target-tag must exists different from source tag'
+    required: false
+    default: ''
+  source-tag:  # id of input
+    description: 'source tag name'
+    required: true
+  target-tag:  # id of input
+    description: 'target tag name. Note:if not provided target-repository-name must exist and different from source-repository-name'
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - id: ecr-action-promote
+      name: ecr-action-promote
+      uses: docker://registry.saas-dev.beescloud.com/staging/skopeo-awscli:latest
+      shell: bash
+      run: |
+        set -x
+
+        if [ "${{ inputs.target-repository-name }}" == "" ] || [ "${{ inputs.source-repository-name }}" == "${{ inputs.target-repository-name }}" ]
+        then
+           if  [ "${{ inputs.target-tag }}" == "" ] || [ "${{ inputs.source-tag }}" == "${{ inputs.target-tag }}" ]
+           then
+               echo "target-tag cannot be empty or must be differ from source-tag, when provided target-repository-name is either empty or equal to source-repository-name"
+               exit 1
+
+           fi
+        fi
+        targetRepo="${{ inputs.target-repository-name }}"
+         
+        if [ "$targetRepo" == "" ]
+        then
+             targetRepo="${{ inputs.source-repository-name }}"
+        fi
+        echo "targetRepo: $targetRepo"
+        sourceUrl="docker://${{ inputs.registry-url }}/${{ inputs.source-repository-name }}:${{ inputs.source-tag }}"
+
+        targetUrl="docker://${{ inputs.registry-url }}/$targetRepo:${{ inputs.target-tag }}"
+        
+        # skopeo login  #  --region us-west-2
+        aws ecr get-login-password  | skopeo login --username AWS --password-stdin ${{ inputs.registry-url }} 
+        
+        #perform skopeo copy action
+        skopeo copy  $sourceUrl  $targetUrl
+    
