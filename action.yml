@@ -25,7 +25,7 @@ runs:
   steps:
     - id: ecr-action-promote
       name: ecr-action-promote
-      uses: docker://registry.saas-dev.beescloud.com/staging/skopeo-awscli:latest
+      uses: docker://public.ecr.aws/l7o7z1g8/actions/skopeo-docker-image:main-2fa98cb3d649e4e54879dee5bdac4a827c8dc7e6
       shell: bash
       run: |
         set -x
