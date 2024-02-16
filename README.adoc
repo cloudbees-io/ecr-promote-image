@@ -16,7 +16,7 @@ Use this action to promote an image in Amazon Elastic Container Registry (Amazon
 | `registry-url`
 | String
 | Yes
-| The Amazon S3 bucket name.
+| The Amazon ECR registry URL.
 
 | `source-repository-name`
 | String
