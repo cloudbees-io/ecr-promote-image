@@ -2,6 +2,8 @@
 
 Use this action to promote an image in Amazon Elastic Container Registry (Amazon ECR).
 
+Note: Information related to the artifacts created with this action will be published to CloudBees Platform.
+
 == Inputs
 
 [cols="2a,1a,3a,3a",options="header"]

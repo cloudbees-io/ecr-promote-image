@@ -25,6 +25,11 @@ runs:
   steps:
     - id: ecr-action-promote
       name: ecr-action-promote
+      env:
+        CLOUDBEES_API_URL: ${{ cloudbees.api.url }}
+        CLOUDBEES_API_TOKEN: ${{ cloudbees.api.token }}
+        CLOUDBEES_RUN_ID: ${{ cloudbees.run_id }}
+        CLOUDBEES_RUN_ATTEMPT: ${{ cloudbees.run_attempt }}
       uses: docker://public.ecr.aws/l7o7z1g8/actions/skopeo-docker-image:main-2fa98cb3d649e4e54879dee5bdac4a827c8dc7e6
       shell: bash
       run: |
@@ -46,13 +51,43 @@ runs:
              targetRepo="${{ inputs.source-repository-name }}"
         fi
         echo "targetRepo: $targetRepo"
-        sourceUrl="docker://${{ inputs.registry-url }}/${{ inputs.source-repository-name }}:${{ inputs.source-tag }}"
 
+        sourceUrl="docker://${{ inputs.registry-url }}/${{ inputs.source-repository-name }}:${{ inputs.source-tag }}"
         targetUrl="docker://${{ inputs.registry-url }}/$targetRepo:${{ inputs.target-tag }}"
+
+        apiURL="$CLOUDBEES_API_URL/v2/workflows/runs/artifactinfos"
+        apiPayload='{
+          "runId": "'"$CLOUDBEES_RUN_ID"'",
+          "run_attempt": "'"$CLOUDBEES_RUN_ATTEMPT"'",
+          "name": "'"$targetRepo"'",
+          "version": "'"${{ inputs.target-tag }}"'",
+          "url": "'"$targetUrl"'",
+          "type": "docker"
+        }'
         
         # skopeo login  #  --region us-west-2
         aws ecr get-login-password  | skopeo login --username AWS --password-stdin ${{ inputs.registry-url }} 
         
         #perform skopeo copy action
-        skopeo copy --insecure-policy $sourceUrl  $targetUrl
-    
+        skopeo copy --insecure-policy $sourceUrl  $targetUrl || {
+            skopeo_exit_status=$?
+            echo "Image promotion failed. Artifact information will not be published to Platform"
+            exit $skopeo_exit_status
+        }
+        
+        # If the copy action is successful, publish artifact information to Platform 
+        if [ $? -eq 0 ]; then
+            echo "Image promotion successful. Publishing artifact information to Platform..."
+            response=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$apiURL" \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $CLOUDBEES_API_TOKEN" \
+              -d "$apiPayload")
+
+            if [ "$response" -eq 200 ]; then
+              echo "Artifact information successfully published to Platform"
+            else
+              echo "Failed to publish artifact information to Platform, HTTP response code: $response"
+              exit 1
+            fi
+        fi
+
