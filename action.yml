@@ -56,18 +56,22 @@ runs:
         targetUrl="docker://${{ inputs.registry-url }}/$targetRepo:${{ inputs.target-tag }}"
 
         apiURL="$CLOUDBEES_API_URL/v2/workflows/runs/artifactinfos"
+        
+        
+        # skopeo login  #  --region us-west-2
+        aws ecr get-login-password  | skopeo login --username AWS --password-stdin ${{ inputs.registry-url }} 
+
+        digest=$(skopeo inspect $sourceUrl | grep -E '"Digest":' | head -n 1 | sed 's/.*: "//;s/",//')
+        
         apiPayload='{
           "runId": "'"$CLOUDBEES_RUN_ID"'",
           "run_attempt": "'"$CLOUDBEES_RUN_ATTEMPT"'",
           "name": "'"$targetRepo"'",
           "version": "'"${{ inputs.target-tag }}"'",
           "url": "'"$targetUrl"'",
-          "type": "docker"
+          "type": "docker",
+          "digest": "'$digest'"
         }'
-        
-        # skopeo login  #  --region us-west-2
-        aws ecr get-login-password  | skopeo login --username AWS --password-stdin ${{ inputs.registry-url }} 
-        
         #perform skopeo copy action
         skopeo copy --insecure-policy $sourceUrl  $targetUrl || {
             skopeo_exit_status=$?
@@ -87,7 +91,6 @@ runs:
               echo "Artifact information successfully published to Platform"
             else
               echo "Failed to publish artifact information to Platform, HTTP response code: $response"
-              exit 1
             fi
         fi
 
