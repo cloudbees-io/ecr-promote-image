@@ -61,7 +61,7 @@ runs:
         # skopeo login  #  --region us-west-2
         aws ecr get-login-password  | skopeo login --username AWS --password-stdin ${{ inputs.registry-url }} 
 
-        digest=$(skopeo inspect $sourceUrl | jq -r '.Digest')
+        digest=$(skopeo inspect $sourceUrl | grep -E '"Digest":' | head -n 1 | sed 's/.*: "//;s/",//')
         
         apiPayload='{
           "runId": "'"$CLOUDBEES_RUN_ID"'",
