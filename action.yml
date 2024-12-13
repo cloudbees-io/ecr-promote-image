@@ -91,7 +91,6 @@ runs:
               echo "Artifact information successfully published to Platform"
             else
               echo "Failed to publish artifact information to Platform, HTTP response code: $response"
-              exit 1
             fi
         fi
 
