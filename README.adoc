@@ -1,6 +1,6 @@
 = CloudBees action: Promote an image in Amazon ECR
 
-Use this action to promote an image in Amazon Elastic Container Registry (Amazon ECR).
+Use this action to promote an image in Amazon Elastic Container Registry (Amazon ECR). This action also reports artifact related data to the workflow run for artifact traceability purposes.
 
 Note: Information related to the artifacts created with this action will be published to CloudBees Platform.
 
