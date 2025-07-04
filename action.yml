@@ -19,6 +19,10 @@ inputs:
     description: 'target tag name. Note:if not provided target-repository-name must exist and different from source-repository-name'
     required: false
     default: ''
+outputs:
+  artifact-id:
+    value: ${{ steps.ecr-action-promote.outputs.artifact-id }}
+    description: "The unique identifier of the artifact."
 
 runs:
   using: composite
@@ -89,6 +93,12 @@ runs:
 
             if [ "$response" -eq 200 ]; then
               echo "Artifact information successfully published to Platform"
+        
+              # Extract the artifactId
+              id=$(echo "$response" | grep -o '"id": *"[^"]*"' | sed 's/.*"id": *"\([^"]*\)".*/\1/')
+            
+              # Set it as an output
+              printf %s "$id" > $CLOUDBEES_OUTPUTS/artifact-id
             else
               echo "Failed to publish artifact information to Platform, HTTP response code: $response"
             fi
