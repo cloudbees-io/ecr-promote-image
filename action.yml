@@ -19,6 +19,10 @@ inputs:
     description: 'target tag name. Note:if not provided target-repository-name must exist and different from source-repository-name'
     required: false
     default: ''
+outputs:
+  artifact-id:
+    value: ${{ steps.ecr-action-promote.outputs.artifact-id }}
+    description: "The unique identifier of the artifact."
 
 runs:
   using: composite
@@ -82,13 +86,19 @@ runs:
         # If the copy action is successful, publish artifact information to Platform 
         if [ $? -eq 0 ]; then
             echo "Image promotion successful. Publishing artifact information to Platform..."
-            response=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$apiURL" \
+            response=$(curl --fail-with-body -w "%{http_code}" -X POST "$apiURL" \
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer $CLOUDBEES_API_TOKEN" \
-              -d "$apiPayload")
+              -d "$apiPayload") || command_failed=1
 
-            if [ "$response" -eq 200 ]; then
+            if [ ${command_failed:-0} -eq 0 ]; then
               echo "Artifact information successfully published to Platform"
+        
+              # Extract the artifactId
+              id=$(echo "$response" | grep -o '"id": *"[^"]*"' | sed 's/.*"id": *"\([^"]*\)".*/\1/')
+            
+              # Set it as an output
+              printf %s "$id" > $CLOUDBEES_OUTPUTS/artifact-id
             else
               echo "Failed to publish artifact information to Platform, HTTP response code: $response"
             fi
