@@ -54,11 +54,11 @@ Note: Information related to the artifacts created with this action will be publ
 
 | `artifact-id`
 | String
-| The unique identifier of the artifact.
+| The unique identifier of the artifact reported to the CloudBees platform.
 
 |===
 
-== Usage example
+== Usage examples
 
 In your YAML file, add:
 
@@ -68,11 +68,61 @@ In your YAML file, add:
       - name: Promote an image in ECR
         uses: cloudbees-io/ecr-promote-image@v1
         with:
-           registry-url: ${{ vars.REGISTRY_URL }}
+           registry-url: ${{ vars.EC_REGISTRY_URL }}
            source-repository-name: my-ecr-repo-name
-           target-repository-name: my-ecr-repo-name
            source-tag: '6'
-           target-tag: '7'
+----
+
+=== Using optional inputs
+
+The following example specifies the `target-repository-name`, required in this case because the source and target tags are identical:
+
+[source,yaml]
+----
+
+      - name: Promote an image in ECR
+        uses: cloudbees-io/ecr-promote-image@v1
+        with:
+           registry-url: ${{ vars.REGISTRY_URL }}
+           source-repository-name: my-source-repo-name
+           source-tag: 2
+           target-repository-name: my-target-repo-name
+           target-tag: 2
+----
+
+[source,yaml,role="default-expanded"]
+----
+nname: ecr-promote-image
+kind: workflow
+apiVersion: automation.cloudbees.io/v1alpha1
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  ec2-promote-image-job:
+    steps:
+      - name: Configure AWS credentials
+        uses: cloudbees-io/configure-aws-credentials@v1
+        with:
+          aws-region: us-west-1
+          aws-access-key-id: ${{ secrets.MY_AWS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.MY_AWS_ACCESS_KEY }}
+      - name: ECR promote image
+        id: ecr-promote
+        uses: cloudbees-io/ecr-promote-image@v1
+        with:
+           registry-url: 123456789012.dkr.ecr.us-west-1.amazonaws.com
+           source-repository-name: my-repo-name
+           source-tag: 'ABC-1234-567a890b1234567890bcde1234567890abcde123'
+           target-tag: 'my-target-tag'
+      - name: Print output parameter artifact ID from ECR pro mote action
+        uses: docker://alpine:latest
+        shell: sh
+        run: |
+          echo "artifact ID for the artifact my-repo-name:my-target-tag is: ${{ steps.ecr-promote.outputs.artifact-id }}"
 ----
 
 == License
@@ -82,5 +132,5 @@ link:https://opensource.org/license/mit/[MIT license].
 
 == References
 
-* Learn more about link:https://docs.cloudbees.com/docs/cloudbees-saas-platform-actions/latest/[using actions in CloudBees workflows].
-* Learn about link:https://docs.cloudbees.com/docs/cloudbees-saas-platform/latest/[the CloudBees platform].
+* Learn more about link:https://docs.cloudbees.com/docs/cloudbees-platform/latest/actions[using actions in CloudBees workflows].
+* Learn about link:https://docs.cloudbees.com/docs/cloudbees-platform/latest/[the CloudBees platform].
