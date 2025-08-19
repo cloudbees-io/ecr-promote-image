@@ -1,8 +1,6 @@
 = CloudBees action: Promote an image in Amazon ECR
 
-Use this action to promote an image in Amazon Elastic Container Registry (Amazon ECR). This action also reports artifact related data to the workflow run for artifact traceability purposes.
-
-Note: Information related to the artifacts created with this action will be published to CloudBees Platform.
+Use this action to promote (copy) an image in Amazon Elastic Container Registry (Amazon ECR). 
 
 == Inputs
 
@@ -25,15 +23,15 @@ Note: Information related to the artifacts created with this action will be publ
 | Yes
 | The Amazon ECR source repository name.
 
-| `target-repository-name`
-| String
-| Required only if `target-tag` is identical to `source-tag`.
-| The Amazon ECR target repository name.
-
 | `source-tag`
 | String
 | Yes
 | The Amazon ECR source image tag.
+
+| `target-repository-name`
+| String
+| Required only if `target-tag` is identical to `source-tag`.
+| The Amazon ECR target repository name.
 
 | `target-tag`
 | String
@@ -54,13 +52,15 @@ Note: Information related to the artifacts created with this action will be publ
 
 | `artifact-id`
 | String
-| The unique identifier of the artifact reported to the CloudBees platform.
+| The unique identifier of the artifact reported to CloudBees platform.
 
 |===
 
 == Usage examples
 
-In your YAML file, add:
+=== Basic example
+
+The following is a basic example of using this action:
 
 [source,yaml]
 ----
@@ -70,7 +70,8 @@ In your YAML file, add:
         with:
            registry-url: ${{ vars.EC_REGISTRY_URL }}
            source-repository-name: my-ecr-repo-name
-           source-tag: '6'
+           source-tag: 6
+
 ----
 
 === Using optional inputs
@@ -90,9 +91,17 @@ The following example specifies the `target-repository-name`, required in this c
            target-tag: 2
 ----
 
+=== Full workflow example
+
+The following workflow example:
+
+* Checks out source code from a repository.
+* Promotes an image from a remote Amazon ECR repository to another Amazon ECR repository.
+* Prints the artifact ID of the promoted file.
+
 [source,yaml,role="default-expanded"]
 ----
-nname: ecr-promote-image
+name: ecr-promote-image
 kind: workflow
 apiVersion: automation.cloudbees.io/v1alpha1
 
@@ -116,9 +125,9 @@ jobs:
         with:
            registry-url: 123456789012.dkr.ecr.us-west-1.amazonaws.com
            source-repository-name: my-repo-name
-           source-tag: 'ABC-1234-567a890b1234567890bcde1234567890abcde123'
-           target-tag: 'my-target-tag'
-      - name: Print output parameter artifact ID from ECR pro mote action
+           source-tag: ABC-1234-567a890b1234567890bcde1234567890abcde123
+           target-tag: my-target-tag
+      - name: Print output parameter artifact ID from ECR promote action
         uses: docker://alpine:latest
         shell: sh
         run: |
@@ -133,4 +142,4 @@ link:https://opensource.org/license/mit/[MIT license].
 == References
 
 * Learn more about link:https://docs.cloudbees.com/docs/cloudbees-platform/latest/actions[using actions in CloudBees workflows].
-* Learn about link:https://docs.cloudbees.com/docs/cloudbees-platform/latest/[the CloudBees platform].
+* Learn about link:https://docs.cloudbees.com/docs/cloudbees-platform/latest/[CloudBees platform].
