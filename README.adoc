@@ -2,6 +2,12 @@
 
 Use this action to promote (copy) an image in Amazon Elastic Container Registry (Amazon ECR). 
 
+== Automatic artifact data reporting
+
+This action link:https://docs.cloudbees.com/docs/cloudbees-platform/latest/workflows/artifacts[reports artifact-related data] to the workflow run for artifact traceability purposes.
+
+Do *not* include the link:https://github.com/cloudbees-io/register-build-artifact[`register-build-artifact` action] in the same job, as the resulting run would register duplicate artifact entries to CloudBees platform.
+
 == Inputs
 
 [cols="2a,1a,3a,3a",options="header"]
