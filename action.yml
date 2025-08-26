@@ -59,7 +59,7 @@ runs:
         sourceUrl="docker://${{ inputs.registry-url }}/${{ inputs.source-repository-name }}:${{ inputs.source-tag }}"
         targetUrl="docker://${{ inputs.registry-url }}/$targetRepo:${{ inputs.target-tag }}"
 
-        apiURL="$CLOUDBEES_API_URL/v2/workflows/runs/artifactinfos"
+        apiURL="$CLOUDBEES_API_URL/v3/artifactinfos"
         
         
         # skopeo login  #  --region us-west-2
