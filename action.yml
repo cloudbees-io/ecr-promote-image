@@ -86,7 +86,7 @@ runs:
         # If the copy action is successful, publish artifact information to Platform 
         if [ $? -eq 0 ]; then
             echo "Image promotion successful. Publishing artifact information to Platform..."
-            response=$(curl --fail-with-body -w "%{http_code}" -X POST "$apiURL" \
+            response=$(curl --retry-delay 5 --retry 3 --retry-connrefused --fail-with-body -w "%{http_code}" -X POST "$apiURL" \
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer $CLOUDBEES_API_TOKEN" \
               -d "$apiPayload") || command_failed=1
@@ -101,6 +101,7 @@ runs:
               printf %s "$id" > $CLOUDBEES_OUTPUTS/artifact-id
             else
               echo "Failed to publish artifact information to Platform, HTTP response code: $response"
+              exit 1
             fi
         fi
 
