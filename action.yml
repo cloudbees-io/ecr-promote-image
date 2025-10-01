@@ -19,6 +19,17 @@ inputs:
     description: 'target tag name. Note:if not provided target-repository-name must exist and different from source-repository-name'
     required: false
     default: ''
+  artifact-name:
+    description: >
+      The name of the artifact, used when registering the build artifact in CloudBees platform.
+      By default the target repository name is used.
+    required: false
+  component-id:
+    description: >
+      The ID of the component associated with the artifact. If not provided, the artifact is registered with the component of the current workflow run.
+    default: ${{ cloudbees.component.id }}
+    required: false
+
 outputs:
   artifact-id:
     value: ${{ steps.ecr-action-promote.outputs.artifact-id }}
@@ -67,14 +78,22 @@ runs:
 
         digest=$(skopeo inspect $sourceUrl | grep -E '"Digest":' | head -n 1 | sed 's/.*: "//;s/",//')
         
+        if [ -n ${{ inputs.artifact-name }} ] && [ "${{ inputs.artifact-name }}" != "" ]
+        then
+            artifactName="${{ inputs.artifact-name }}"
+        else
+            artifactName="$targetRepo"
+        fi
+        
         apiPayload='{
           "runId": "'"$CLOUDBEES_RUN_ID"'",
           "run_attempt": "'"$CLOUDBEES_RUN_ATTEMPT"'",
-          "name": "'"$targetRepo"'",
+          "name": "'"$artifactName"'",
           "version": "'"${{ inputs.target-tag }}"'",
           "url": "'"$targetUrl"'",
           "type": "docker",
-          "digest": "'$digest'"
+          "digest": "'$digest'",
+          "componentId": "'"${{ inputs.component-id }}"'"
         }'
         #perform skopeo copy action
         skopeo copy --insecure-policy $sourceUrl  $targetUrl || {
