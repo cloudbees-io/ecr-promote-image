@@ -93,8 +93,8 @@ runs:
           "version": "'"${{ inputs.target-tag }}"'",
           "url": "'"$targetUrl"'",
           "type": "docker",
-          "digest": "'$digest'"
-          "componentId": "'"${{ inputs.component-id }}"'",
+          "digest": "'$digest'",
+          "componentId": "'"${{ inputs.component-id }}"'"
         }'
         #perform skopeo copy action
         skopeo copy --insecure-policy $sourceUrl  $targetUrl || {
