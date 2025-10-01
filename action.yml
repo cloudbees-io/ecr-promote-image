@@ -78,7 +78,7 @@ runs:
 
         digest=$(skopeo inspect $sourceUrl | grep -E '"Digest":' | head -n 1 | sed 's/.*: "//;s/",//')
         
-        if [ ${{ inputs.artifact-name }} != "" && ${{ inputs.artifact-name }} != null ]
+        if [ -n ${{ inputs.artifact-name }} ]
         then
             artifactName="${{ inputs.artifact-name }}"
         else
