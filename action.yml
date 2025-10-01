@@ -23,7 +23,6 @@ inputs:
     description: >
       The name of the artifact, used when registering the build artifact in CloudBees platform.
       By default the target repository name is used.
-    default: ''
     required: false
   component-id:
     description: >
@@ -79,7 +78,7 @@ runs:
 
         digest=$(skopeo inspect $sourceUrl | grep -E '"Digest":' | head -n 1 | sed 's/.*: "//;s/",//')
         
-        if [ ${{ inputs.artifact-name }} != "" ]
+        if [ ${{ inputs.artifact-name }} != "" && ${{ inputs.artifact-name }} != null ]
         then
             artifactName="${{ inputs.artifact-name }}"
         else
