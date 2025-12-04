@@ -50,19 +50,15 @@ runs:
       run: |
              set -x
              
-             if [ "${{ inputs.target-repository-name }}" == "" ] || [ "${{ inputs.source-repository-name }}" == "${{ inputs.target-repository-name }}" ]
-             then
-             if  [ "${{ inputs.target-tag }}" == "" ] || [ "${{ inputs.source-tag }}" == "${{ inputs.target-tag }}" ]
-             then
-                 echo "target-tag cannot be empty or must be differ from source-tag, when provided target-repository-name is either empty or equal to source-repository-name"
-                 exit 1
-             
-             fi
+             if [ "${{ inputs.target-repository-name }}" == "" ] || [ "${{ inputs.source-repository-name }}" == "${{ inputs.target-repository-name }}" ]; then
+               if  [ "${{ inputs.target-tag }}" == "" ] || [ "${{ inputs.source-tag }}" == "${{ inputs.target-tag }}" ]; then
+                   echo "target-tag cannot be empty or must be differ from source-tag, when provided target-repository-name is either empty or equal to source-repository-name"
+                   exit 1
+              fi
              fi
              targetRepo="${{ inputs.target-repository-name }}"
              
-             if [ "$targetRepo" == "" ]
-             then
+             if [ "$targetRepo" == "" ]; then
                targetRepo="${{ inputs.source-repository-name }}"
              fi
              echo "targetRepo: $targetRepo"
@@ -75,11 +71,10 @@ runs:
              
              digest=$(skopeo inspect $sourceUrl | grep -E '"Digest":' | head -n 1 | sed 's/.*: "//;s/",//')
              
-             if [ -n ${{ inputs.artifact-name }} ] && [ "${{ inputs.artifact-name }}" != "" ]
-             then
-             artifactName="${{ inputs.artifact-name }}"
+             if [ -n ${{ inputs.artifact-name }} ] && [ "${{ inputs.artifact-name }}" != "" ]; then
+              artifactName="${{ inputs.artifact-name }}"
              else
-             artifactName="$targetRepo"
+              artifactName="$targetRepo"
              fi
         
              # Set variables for register artifact API call
@@ -93,18 +88,8 @@ runs:
                echo "Image promotion failed. Artifact information will not be published to Platform"
                exit $skopeo_exit_status
              }
-             
-             copied="false"
-             # If the copy action is successful, publish artifact information to Platform 
-             if [ $? -eq 0 ]; then
-              copied="true"
-             fi
-             
-             printf %s "$copied" > $CLOUDBEES_OUTPUTS/copied
-
     - id: register-artifact
       name: Register Build Artifact
-      if: ${{ steps.ecr-action-promote.outputs.copied == 'true' }}
       uses: cloudbees-io/register-build-artifact@v2
       with:
         name: ${{ steps.ecr-action-promote.outputs.artifact-name }}
@@ -113,4 +98,5 @@ runs:
         digest: ${{ steps.ecr-action-promote.outputs.digest }}
         component-id: ${{ inputs.component-id }}
         #type: "docker"
+
 
