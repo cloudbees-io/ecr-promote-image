@@ -97,6 +97,6 @@ runs:
         version: ${{ inputs.target-tag }}
         digest: ${{ steps.ecr-action-promote.outputs.digest }}
         component-id: ${{ inputs.component-id }}
-        type: "docker"
+        #type: "docker"
 
 
