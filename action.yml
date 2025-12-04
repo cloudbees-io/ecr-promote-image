@@ -2,20 +2,20 @@ apiVersion: automation.cloudbees.io/v1alpha1
 kind: action
 name: ecr-actions
 inputs:
-  registry-url:  # id of input
+  registry-url: # id of input
     description: 'registry url'
     required: true
-  source-repository-name:  # id of input
+  source-repository-name: # id of input
     description: 'source repository name'
     required: true
-  target-repository-name:  # id of input
+  target-repository-name: # id of input
     description: 'target repository name. Note: if empty or same as source repository name,  target-tag must exists different from source tag'
     required: false
     default: ''
-  source-tag:  # id of input
+  source-tag: # id of input
     description: 'source tag name'
     required: true
-  target-tag:  # id of input
+  target-tag: # id of input
     description: 'target tag name. Note:if not provided target-repository-name must exist and different from source-repository-name'
     required: false
     default: ''
@@ -48,90 +48,59 @@ runs:
       uses: docker://public.ecr.aws/l7o7z1g8/actions/skopeo-docker-image:main-2fa98cb3d649e4e54879dee5bdac4a827c8dc7e6
       shell: bash
       run: |
-        set -x
-
-        if [ "${{ inputs.target-repository-name }}" == "" ] || [ "${{ inputs.source-repository-name }}" == "${{ inputs.target-repository-name }}" ]
-        then
-           if  [ "${{ inputs.target-tag }}" == "" ] || [ "${{ inputs.source-tag }}" == "${{ inputs.target-tag }}" ]
-           then
-               echo "target-tag cannot be empty or must be differ from source-tag, when provided target-repository-name is either empty or equal to source-repository-name"
-               exit 1
-
-           fi
-        fi
-        targetRepo="${{ inputs.target-repository-name }}"
-         
-        if [ "$targetRepo" == "" ]
-        then
-             targetRepo="${{ inputs.source-repository-name }}"
-        fi
-        echo "targetRepo: $targetRepo"
-
-        sourceUrl="docker://${{ inputs.registry-url }}/${{ inputs.source-repository-name }}:${{ inputs.source-tag }}"
-        targetUrl="docker://${{ inputs.registry-url }}/$targetRepo:${{ inputs.target-tag }}"
-
-        apiURL="$CLOUDBEES_API_URL/v3/artifactinfos"
+             set -x
+             
+             if [ "${{ inputs.target-repository-name }}" == "" ] || [ "${{ inputs.source-repository-name }}" == "${{ inputs.target-repository-name }}" ]
+             then
+             if  [ "${{ inputs.target-tag }}" == "" ] || [ "${{ inputs.source-tag }}" == "${{ inputs.target-tag }}" ]
+             then
+                 echo "target-tag cannot be empty or must be differ from source-tag, when provided target-repository-name is either empty or equal to source-repository-name"
+                 exit 1
+             
+             fi
+             fi
+             targetRepo="${{ inputs.target-repository-name }}"
+             
+             if [ "$targetRepo" == "" ]
+             then
+               targetRepo="${{ inputs.source-repository-name }}"
+             fi
+             echo "targetRepo: $targetRepo"
+             
+             sourceUrl="docker://${{ inputs.registry-url }}/${{ inputs.source-repository-name }}:${{ inputs.source-tag }}"
+             targetUrl="docker://${{ inputs.registry-url }}/$targetRepo:${{ inputs.target-tag }}"
         
+             # skopeo login  #  --region us-west-2
+             aws ecr get-login-password  | skopeo login --username AWS --password-stdin ${{ inputs.registry-url }}
+             
+             digest=$(skopeo inspect $sourceUrl | grep -E '"Digest":' | head -n 1 | sed 's/.*: "//;s/",//')
+             
+             if [ -n ${{ inputs.artifact-name }} ] && [ "${{ inputs.artifact-name }}" != "" ]
+             then
+             artifactName="${{ inputs.artifact-name }}"
+             else
+             artifactName="$targetRepo"
+             fi
         
-        # skopeo login  #  --region us-west-2
-        aws ecr get-login-password  | skopeo login --username AWS --password-stdin ${{ inputs.registry-url }} 
-
-        digest=$(skopeo inspect $sourceUrl | grep -E '"Digest":' | head -n 1 | sed 's/.*: "//;s/",//')
+             # Set variables for register artifact API call
+             printf %s "$artifactName" > $CLOUDBEES_OUTPUTS/artifact-name
+             printf %s "$targetUrl" > $CLOUDBEES_OUTPUTS/targetUrl
+             printf %s "$digest" > $CLOUDBEES_OUTPUTS/digest
         
-        if [ -n ${{ inputs.artifact-name }} ] && [ "${{ inputs.artifact-name }}" != "" ]
-        then
-            artifactName="${{ inputs.artifact-name }}"
-        else
-            artifactName="$targetRepo"
-        fi
-        
-        # Set variables for register artifact API call
-        printf %s "$artifactName" > $CLOUDBEES_OUTPUTS/artifact-name
-        printf %s "$targetUrl" > $CLOUDBEES_OUTPUTS/targetUrl
-        printf %s "$digest" > $CLOUDBEES_OUTPUTS/digest
-
-#        apiPayload='{
-#          "runId": "'"$CLOUDBEES_RUN_ID"'",
-#          "run_attempt": "'"$CLOUDBEES_RUN_ATTEMPT"'",
-#          "name": "'"$artifactName"'",
-#          "version": "'"${{ inputs.target-tag }}"'",
-#          "url": "'"$targetUrl"'",
-#          "type": "docker",
-#          "digest": "'$digest'",
-#          "componentId": "'"${{ inputs.component-id }}"'"
-#        }'
-        #perform skopeo copy action
-        skopeo copy --insecure-policy $sourceUrl  $targetUrl || {
-            skopeo_exit_status=$?
-            echo "Image promotion failed. Artifact information will not be published to Platform"
-            exit $skopeo_exit_status
-        }
-        
-        copied=false
-        # If the copy action is successful, publish artifact information to Platform 
-        if [ $? -eq 0 ]; then
-             copied=true
-#            echo "Image promotion successful. Publishing artifact information to Platform..."
-#            response=$(curl --retry-delay 5 --retry 3 --retry-connrefused --fail-with-body -w "%{http_code}" -X POST "$apiURL" \
-#              -H "Content-Type: application/json" \
-#              -H "Authorization: Bearer $CLOUDBEES_API_TOKEN" \
-#              -d "$apiPayload") || command_failed=1
-#
-#            if [ ${command_failed:-0} -eq 0 ]; then
-#              echo "Artifact information successfully published to Platform"
-#        
-#              # Extract the artifactId
-#              id=$(echo "$response" | grep -o '"id": *"[^"]*"' | sed 's/.*"id": *"\([^"]*\)".*/\1/')
-#            
-#              # Set it as an output
-#              printf %s "$id" > $CLOUDBEES_OUTPUTS/artifact-id
-#            else
-#              echo "Failed to publish artifact information to Platform, HTTP response code: $response"
-#              exit 1
-#            fi
-        fi
-        
-        printf %s "$copied" > $CLOUDBEES_OUTPUTS/copied
+             #perform skopeo copy action
+             skopeo copy --insecure-policy $sourceUrl  $targetUrl || {
+               skopeo_exit_status=$?
+               echo "Image promotion failed. Artifact information will not be published to Platform"
+               exit $skopeo_exit_status
+             }
+             
+             copied="false"
+             # If the copy action is successful, publish artifact information to Platform 
+             if [ $? -eq 0 ]; then
+              copied="true"
+             fi
+             
+             printf %s "$copied" > $CLOUDBEES_OUTPUTS/copied
 
     - id: register-artifact
       name: Register Build Artifact
