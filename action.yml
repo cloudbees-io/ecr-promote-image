@@ -32,7 +32,7 @@ inputs:
 
 outputs:
   artifact-id:
-    value: ${{ steps.ecr-action-promote.outputs.artifact-id }}
+    value: ${{ steps.register-artifact.outputs.artifact-id }}
     description: "The unique identifier of the artifact."
 
 runs:
@@ -85,16 +85,21 @@ runs:
             artifactName="$targetRepo"
         fi
         
-        apiPayload='{
-          "runId": "'"$CLOUDBEES_RUN_ID"'",
-          "run_attempt": "'"$CLOUDBEES_RUN_ATTEMPT"'",
-          "name": "'"$artifactName"'",
-          "version": "'"${{ inputs.target-tag }}"'",
-          "url": "'"$targetUrl"'",
-          "type": "docker",
-          "digest": "'$digest'",
-          "componentId": "'"${{ inputs.component-id }}"'"
-        }'
+        # Set variables for register artifact API call
+        printf %s "$artifactName" > $CLOUDBEES_OUTPUTS/artifact-name
+        printf %s "$targetUrl" > $CLOUDBEES_OUTPUTS/targetUrl
+        printf %s "$digest" > $CLOUDBEES_OUTPUTS/digest
+
+#        apiPayload='{
+#          "runId": "'"$CLOUDBEES_RUN_ID"'",
+#          "run_attempt": "'"$CLOUDBEES_RUN_ATTEMPT"'",
+#          "name": "'"$artifactName"'",
+#          "version": "'"${{ inputs.target-tag }}"'",
+#          "url": "'"$targetUrl"'",
+#          "type": "docker",
+#          "digest": "'$digest'",
+#          "componentId": "'"${{ inputs.component-id }}"'"
+#        }'
         #perform skopeo copy action
         skopeo copy --insecure-policy $sourceUrl  $targetUrl || {
             skopeo_exit_status=$?
@@ -102,25 +107,41 @@ runs:
             exit $skopeo_exit_status
         }
         
+        copied=false
         # If the copy action is successful, publish artifact information to Platform 
         if [ $? -eq 0 ]; then
-            echo "Image promotion successful. Publishing artifact information to Platform..."
-            response=$(curl --retry-delay 5 --retry 3 --retry-connrefused --fail-with-body -w "%{http_code}" -X POST "$apiURL" \
-              -H "Content-Type: application/json" \
-              -H "Authorization: Bearer $CLOUDBEES_API_TOKEN" \
-              -d "$apiPayload") || command_failed=1
-
-            if [ ${command_failed:-0} -eq 0 ]; then
-              echo "Artifact information successfully published to Platform"
-        
-              # Extract the artifactId
-              id=$(echo "$response" | grep -o '"id": *"[^"]*"' | sed 's/.*"id": *"\([^"]*\)".*/\1/')
-            
-              # Set it as an output
-              printf %s "$id" > $CLOUDBEES_OUTPUTS/artifact-id
-            else
-              echo "Failed to publish artifact information to Platform, HTTP response code: $response"
-              exit 1
-            fi
+             copied=true
+#            echo "Image promotion successful. Publishing artifact information to Platform..."
+#            response=$(curl --retry-delay 5 --retry 3 --retry-connrefused --fail-with-body -w "%{http_code}" -X POST "$apiURL" \
+#              -H "Content-Type: application/json" \
+#              -H "Authorization: Bearer $CLOUDBEES_API_TOKEN" \
+#              -d "$apiPayload") || command_failed=1
+#
+#            if [ ${command_failed:-0} -eq 0 ]; then
+#              echo "Artifact information successfully published to Platform"
+#        
+#              # Extract the artifactId
+#              id=$(echo "$response" | grep -o '"id": *"[^"]*"' | sed 's/.*"id": *"\([^"]*\)".*/\1/')
+#            
+#              # Set it as an output
+#              printf %s "$id" > $CLOUDBEES_OUTPUTS/artifact-id
+#            else
+#              echo "Failed to publish artifact information to Platform, HTTP response code: $response"
+#              exit 1
+#            fi
         fi
+        
+        printf %s "$copied" > $CLOUDBEES_OUTPUTS/copied
+
+    - id: register-artifact
+      name: Register Build Artifact
+      if: ${{ steps.ecr-action-promote.outputs.copied == 'true' }}
+      uses: cloudbees-io/register-build-artifact@v2
+      with:
+        name: ${{ steps.ecr-action-promote.outputs.artifact-name }}
+        url: ${{ steps.ecr-action-promote.outputs.targetUrl }}
+        version: ${{ inputs.target-tag }}
+        digest: ${{ steps.ecr-action-promote.outputs.digest }}
+        component-id: ${{ inputs.component-id }}
+        type: "docker"
 
