@@ -93,7 +93,7 @@ runs:
       uses: cloudbees-io/register-build-artifact@v2
       with:
         name: ${{ steps.ecr-action-promote.outputs.artifact-name }}
-        url: ${{ steps.ecr-action-promote.outputs.targetUrl }}
+        url: ${{ steps.ecr-action-promote.outputs.target-url }}
         version: ${{ inputs.target-tag }}
         digest: ${{ steps.ecr-action-promote.outputs.digest }}
         component-id: ${{ inputs.component-id }}
