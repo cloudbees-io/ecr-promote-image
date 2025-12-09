@@ -79,7 +79,7 @@ runs:
         
              # Set variables for register artifact API call
              printf %s "$artifactName" > $CLOUDBEES_OUTPUTS/artifact-name
-             printf %s "$targetUrl" > $CLOUDBEES_OUTPUTS/targetUrl
+             printf %s "$targetUrl" > $CLOUDBEES_OUTPUTS/target-url
              printf %s "$digest" > $CLOUDBEES_OUTPUTS/digest
         
              #perform skopeo copy action
