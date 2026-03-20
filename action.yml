@@ -45,7 +45,7 @@ runs:
         CLOUDBEES_API_TOKEN: ${{ cloudbees.api.token }}
         CLOUDBEES_RUN_ID: ${{ cloudbees.run_id }}
         CLOUDBEES_RUN_ATTEMPT: ${{ cloudbees.run_attempt }}
-      uses: docker://public.ecr.aws/l7o7z1g8/actions/skopeo-docker-image:main-2fa98cb3d649e4e54879dee5bdac4a827c8dc7e6
+      uses: docker://020229604682.dkr.ecr.us-east-1.amazonaws.com/actions/crane-docker-image:CBP-34809-fix-dependencies-7ad2d598c747f3ba59bd1c8cf57e3a0a2e74bbc3
       shell: bash
       run: |
              set -x
@@ -63,13 +63,18 @@ runs:
              fi
              echo "targetRepo: $targetRepo"
              
+             # Crane uses registry/repo:tag format (no docker:// prefix)
+             craneSource="${{ inputs.registry-url }}/${{ inputs.source-repository-name }}:${{ inputs.source-tag }}"
+             craneTarget="${{ inputs.registry-url }}/$targetRepo:${{ inputs.target-tag }}"
+
+             # URLs with docker:// prefix for artifact registration
              sourceUrl="docker://${{ inputs.registry-url }}/${{ inputs.source-repository-name }}:${{ inputs.source-tag }}"
              targetUrl="docker://${{ inputs.registry-url }}/$targetRepo:${{ inputs.target-tag }}"
-        
-             # skopeo login  #  --region us-west-2
-             aws ecr get-login-password  | skopeo login --username AWS --password-stdin ${{ inputs.registry-url }}
-             
-             digest=$(skopeo inspect $sourceUrl | grep -E '"Digest":' | head -n 1 | sed 's/.*: "//;s/",//')
+
+             # crane auth login  #  --region us-west-2
+             aws ecr get-login-password  | crane auth login --username AWS --password-stdin ${{ inputs.registry-url }}
+
+             digest=$(crane digest "$craneSource")
              
              if [ -n "${{ inputs.artifact-name }}" ] && [ "${{ inputs.artifact-name }}" != "" ]; then
               artifactName="${{ inputs.artifact-name }}"
@@ -82,11 +87,11 @@ runs:
              printf %s "$targetUrl" > $CLOUDBEES_OUTPUTS/target-url
              printf %s "$digest" > $CLOUDBEES_OUTPUTS/digest
         
-             #perform skopeo copy action
-             skopeo copy --insecure-policy $sourceUrl  $targetUrl || {
-               skopeo_exit_status=$?
+             #perform crane copy action
+             crane copy "$craneSource" "$craneTarget" || {
+               crane_exit_status=$?
                echo "Image promotion failed. Artifact information will not be published to Platform"
-               exit $skopeo_exit_status
+               exit $crane_exit_status
              }
     - id: register-artifact
       name: Register Build Artifact
