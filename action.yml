@@ -45,7 +45,7 @@ runs:
         CLOUDBEES_API_TOKEN: ${{ cloudbees.api.token }}
         CLOUDBEES_RUN_ID: ${{ cloudbees.run_id }}
         CLOUDBEES_RUN_ATTEMPT: ${{ cloudbees.run_attempt }}
-      uses: docker://020229604682.dkr.ecr.us-east-1.amazonaws.com/actions/crane-docker-image:CBP-34809-fix-dependencies-7ad2d598c747f3ba59bd1c8cf57e3a0a2e74bbc3
+      uses: docker://020229604682.dkr.ecr.us-east-1.amazonaws.com/actions/crane-docker-image:CBP-34809-fix-dependencies-54aa7faea44b07bd98dfc4cea71ddfb47511995a
       shell: bash
       run: |
              set -x
